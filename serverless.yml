@@ -1,0 +1,43 @@
+service: atlas-api-serverless
+# app and org for use with dashboard.serverless.com
+#app: your-app-name
+#org: your-org-name
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  memorySize: 128
+  timeout: 10
+
+functions:
+  getTrades:
+    handler: handler.getTrades
+    events:
+      - http:
+         path: /trades
+         method: get
+         cors: true
+  getTradesByTrader:
+    handler: handler.getTradesByTrader
+    events:
+      - http:
+         path: /trades/{trader}
+         method: get
+         cors: true
+  createTrade:
+    handler: handler.createTrade
+    events:
+      - http:
+         path: /trade
+         method: post
+         cors: true
+  updateTrade:
+    handler: handler.updateTrade
+    events:
+      - http:
+         path: /trade/{tradeId}
+         method: put
+         cors: true
+
+plugins:
+- serverless-offline
