@@ -7,7 +7,7 @@ const Trade = require('./models/Trade');
 module.exports.getTrades = (event, context, callback) => {
   context.callbackWaitsForEmptyEventLoop = false;
 
-  const query = event.queryParameters;
+  const query = event.queryStringParameters;
   console.log(query);
 
   connectToDB()
