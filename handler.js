@@ -117,7 +117,7 @@ module.exports.updateTrade = (event, context, callback) => {
         callback(null, {
           statusCode: err.statusCode || 500,
           headers: { 'Content-Type': 'text/plain' },
-          body: 'Could not create trade'
+          body: 'Could not update trade'
         });
       }
     });
