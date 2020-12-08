@@ -54,7 +54,9 @@ module.exports.getTradesByTrader = (event, context, callback) => {
 
 module.exports.createTrade = (event, context, callback) => {
   context.callbackWaitsForEmptyEventLoop = false;
-  const body = JSON.parse(event.body);
+  let body = JSON.parse(event.body);
+  let expirationArray = body.expiration.split('/');
+  body.expiration = new Date(expirationArray[2], expirationArray[0] - 1, expirationArray[1]);
 
   connectToDB()
     .then(() => {
@@ -67,11 +69,14 @@ module.exports.createTrade = (event, context, callback) => {
           statusCode: 200,
           body: JSON.stringify(results)
         }))
-        .catch(err => callback(null, {
-          statusCode: err.statusCode || 500,
-          headers: { 'Content-Type': 'text/plain' },
-          body: 'Could not create trade'
-        }));
+        .catch(err => {
+          console.log('Failed at creating trade', err);
+          callback(null, {
+            statusCode: err.statusCode || 500,
+            headers: { 'Content-Type': 'text/plain' },
+            body: 'Could not create trade'
+          })
+        });
     });
 };
 
