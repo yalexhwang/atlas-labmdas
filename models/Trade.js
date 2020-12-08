@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const TradeSchema = new mongoose.Schema({
-  trader: { type: String, required: true },
+  traderId: { type: String, required: true },
   ticker: { type: String, required: true },
   positionType: {
     type: String,
@@ -9,7 +9,7 @@ const TradeSchema = new mongoose.Schema({
     enum: ['CALL', 'PUT', 'SPREAD']
   },
   strikePrice: { type: Number, required: true },
-  expiration: { type: String, required: true },
+  expiration: { type: Date, required: true },
   contractPriceAtOpen: { type: Number, required: true },
   contractPriceAtClose: { type: Number, default: null },
   roi: { type: Number, default: null }
