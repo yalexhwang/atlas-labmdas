@@ -9,4 +9,5 @@ For payload format, see models
 
 ### What to do next
 - Update schema: expriation to 'date'
+- Add authorization
 - Buy domain name
