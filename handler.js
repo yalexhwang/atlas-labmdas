@@ -28,7 +28,10 @@ module.exports.getTrades = (event, context, callback) => {
 module.exports.getTradesByTrader = (event, context, callback) => {
   context.callbackWaitsForEmptyEventLoop = false;
 
-  const trader = event.pathParameters.trader || null;
+  const params = event.queryStringParameters;
+  console.log(params);
+  const trader = event.pathParameters.traderId || null;
+
   if (!trader) {
     callback(null, {
       statusCode: 400,
@@ -54,7 +57,10 @@ module.exports.getTradesByTrader = (event, context, callback) => {
 
 module.exports.createTrade = (event, context, callback) => {
   context.callbackWaitsForEmptyEventLoop = false;
+  console.log(event);
+
   let body = JSON.parse(event.body);
+  console.log(body);
   let expirationArray = body.expiration.split('/');
   body.expiration = new Date(expirationArray[2], expirationArray[0] - 1, expirationArray[1]);
 
@@ -63,7 +69,6 @@ module.exports.createTrade = (event, context, callback) => {
       if (body.contractPriceAtClose && body.contractPriceAtOpen) {
         body.roi = (body.contractPriceAtClose - body.contractPriceAtOpen) / body.contractPriceAtOpen;
       }
-      console.log(body);
       Trade.create(body)
         .then(results => callback(null, {
           statusCode: 200,

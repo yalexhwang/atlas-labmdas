@@ -21,7 +21,7 @@ functions:
     handler: handler.getTradesByTrader
     events:
       - http:
-         path: /trades/{trader}
+         path: /trades/{traderId}
          method: get
          cors: true
   createTrade:
