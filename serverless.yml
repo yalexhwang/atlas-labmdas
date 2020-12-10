@@ -38,6 +38,13 @@ functions:
          path: /trade/{tradeId}
          method: put
          cors: true
+  deleteTrade:
+    handler: handler.deleteTrade
+    events:
+      - http:
+         path: /trade/{tradeId}
+         method: delete
+         cors: true
 
 plugins:
 - serverless-offline

@@ -2,6 +2,7 @@
 require('dotenv').config({ path: './variables.env' });
 
 const connectToDB = require('./db');
+const { validateTradeData } = require('./validator');
 const Trade = require('./models/Trade');
 
 module.exports.getTrades = (event, context, callback) => {
@@ -28,9 +29,8 @@ module.exports.getTrades = (event, context, callback) => {
 module.exports.getTradesByTrader = (event, context, callback) => {
   context.callbackWaitsForEmptyEventLoop = false;
 
-  const params = event.queryStringParameters;
-  console.log(params);
-  const trader = event.pathParameters.traderId || null;
+  const params = event.pathParameters;
+  const trader = params.traderId || null;
 
   if (!trader) {
     callback(null, {
@@ -38,11 +38,13 @@ module.exports.getTradesByTrader = (event, context, callback) => {
       headers: { 'Content-Type': 'text/plain' },
       body: 'Missing trader parameter'
     });
+    return;
   }
 
   connectToDB()
     .then(() => {
-      Trade.find({ trader: trader })
+      const query = event.queryStringParameters;
+      Trade.find({ ...query, traderId: trader })
         .then(results => callback(null, {
           statusCode: 200,
           body: JSON.stringify(results)
@@ -58,17 +60,33 @@ module.exports.getTradesByTrader = (event, context, callback) => {
 module.exports.createTrade = (event, context, callback) => {
   context.callbackWaitsForEmptyEventLoop = false;
   console.log(event);
-
   let body = JSON.parse(event.body);
   console.log(body);
-  let expirationArray = body.expiration.split('/');
+
+  const validation = validateTradeData(body);
+  console.log(validation);
+  if (validation.error) {
+    callback(null, {
+      statusCode: 400,
+      headers: { 'Content-Type': 'text/plain' },
+      body: validation.message
+    });
+    return;
+  }
+
+  body.positionType = body.positionType.toUpperCase();
+  body.deletedAt = null;
+  body.deleted = 0;
+
+  let expirationArray = body.expiration.split("/");
   body.expiration = new Date(expirationArray[2], expirationArray[0] - 1, expirationArray[1]);
+
+  if (body.contractPriceAtClose && body.contractPriceAtOpen) {
+    body.roi = (body.contractPriceAtClose - body.contractPriceAtOpen) / body.contractPriceAtOpen;
+  }
 
   connectToDB()
     .then(() => {
-      if (body.contractPriceAtClose && body.contractPriceAtOpen) {
-        body.roi = (body.contractPriceAtClose - body.contractPriceAtOpen) / body.contractPriceAtOpen;
-      }
       Trade.create(body)
         .then(results => callback(null, {
           statusCode: 200,
@@ -87,16 +105,32 @@ module.exports.createTrade = (event, context, callback) => {
 
 module.exports.updateTrade = (event, context, callback) => {
   context.callbackWaitsForEmptyEventLoop = false;
-  const tradeId = event.pathParameters.tradeId || null;
-  let body = JSON.parse(event.body);
 
+  const tradeId = event.pathParameters.tradeId || null;
   if (!tradeId) {
     callback(null, {
       statusCode: 400,
       headers: { 'Content-Type': 'text/plain' },
       body: 'Missing tradeId parameter'
     });
+    return;
   }
+
+  let body = JSON.parse(event.body);
+  if (!body.traderId) {
+    callback(null, {
+      statusCode: 400,
+      headers: { 'Content-Type': 'text/plain' },
+      body: 'Missing trader Id'
+    });
+    return;
+  }
+
+  if (body.positionType) {
+    body.positionType = body.positionType.toUpperCase();
+  }
+  body.deletedAt = null;
+  body.deleted = 0;
 
   connectToDB()
     .then(async () => {
@@ -107,6 +141,16 @@ module.exports.updateTrade = (event, context, callback) => {
           headers: { 'Content-Type': 'text/plain' },
           body: 'No trade found with given trade Id'
         });
+        return;
+      }
+  
+      if (trade.traderId !== body.traderId) {
+        callback(null, {
+          statusCode: 403,
+          headers: { 'Content-Type': 'text/plain' },
+          body: 'Trade does not belong to given trader Id'
+        });
+        return;
       }
 
       if (body.contractPriceAtClose) {
@@ -128,6 +172,69 @@ module.exports.updateTrade = (event, context, callback) => {
           statusCode: err.statusCode || 500,
           headers: { 'Content-Type': 'text/plain' },
           body: 'Could not update trade'
+        });
+      }
+    });
+};
+
+module.exports.deleteTrade = (event, context, callback) => {
+  context.callbackWaitsForEmptyEventLoop = false;
+
+  const tradeId = event.pathParameters.tradeId || null;
+  if (!tradeId) {
+    callback(null, {
+      statusCode: 400,
+      headers: { 'Content-Type': 'text/plain' },
+      body: 'Missing tradeId parameter'
+    });
+    return;
+  }
+
+  const body = JSON.parse(event.body);
+  if (!body.traderId) {
+    callback(null, {
+      statusCode: 400,
+      headers: { 'Content-Type': 'text/plain' },
+      body: 'Missing trader Id'
+    });
+    return;
+  }
+
+  connectToDB()
+    .then(async () => {
+      let trade = await Trade.findById(tradeId).exec();
+      if (!trade) {
+        callback(null, {
+          statusCode: 404,
+          headers: { 'Content-Type': 'text/plain' },
+          body: 'No trade found with given trade Id'
+        });
+        return;
+      }
+
+      if (trade.traderId !== body.traderId) {
+        callback(null, {
+          statusCode: 403,
+          headers: { 'Content-Type': 'text/plain' },
+          body: 'Trade does not belong to given trader Id'
+        });
+        return;
+      }
+  
+      trade.deleted = 1;
+      trade.deletedAt = new Date().toUTCString();
+
+      try {
+        const result = await trade.save();
+        callback(null, {
+          statusCode: 200,
+          body: JSON.stringify(result)
+        });
+      } catch (err) {
+        callback(null, {
+          statusCode: err.statusCode || 500,
+          headers: { 'Content-Type': 'text/plain' },
+          body: 'Could not delete trade'
         });
       }
     });
