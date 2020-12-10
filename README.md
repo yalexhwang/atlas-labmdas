@@ -2,10 +2,11 @@
 
 ### Endpoints 
 For payload format, see models
-* GET - https://7g6uyqigvi.execute-api.us-east-1.amazonaws.com/dev/trades
-* GET - https://7g6uyqigvi.execute-api.us-east-1.amazonaws.com/dev/trades/{trader}
-* POST - https://7g6uyqigvi.execute-api.us-east-1.amazonaws.com/dev/trade
-* PUT - https://7g6uyqigvi.execute-api.us-east-1.amazonaws.com/dev/trade/{tradeId}
+Base Url: https://6yzzal6fyl.execute-api.us-east-1.amazonaws.com/dev
+* GET - /trades
+* GET - /trades/{traderId}
+* POST - /trade
+* PUT - /trade/{tradeId}
 
 ### What to do next
 - Update schema: expriation to 'date'
