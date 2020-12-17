@@ -42,7 +42,7 @@ function validateExpiration(expirationString) {
   const month = Number(expirationArray[0]);
   if (month < 1 || month > 12) return false;
 
-  const lastDayOfMonth = 30;
+  let lastDayOfMonth = 30;
   if ([1, 3, 5, 7, 8, 10, 12].includes(month)) {
     lastDayOfMonth = 31;
   } else if (month === 2 && year % 4 > 0) {
