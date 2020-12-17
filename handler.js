@@ -126,12 +126,6 @@ module.exports.updateTrade = (event, context, callback) => {
     return;
   }
 
-  if (body.positionType) {
-    body.positionType = body.positionType.toUpperCase();
-  }
-  body.deletedAt = null;
-  body.deleted = 0;
-
   connectToDB()
     .then(async () => {
       let trade = await Trade.findById(tradeId).exec();
@@ -153,13 +147,27 @@ module.exports.updateTrade = (event, context, callback) => {
         return;
       }
 
-      if (body.contractPriceAtClose) {
-        body.roi = (body.contractPriceAtClose - trade.contractPriceAtOpen) / trade.contractPriceAtOpen;
+      if (trade.deleted || trade.status !== 'OPEN') {
+        callback(null, {
+          statusCode: 403,
+          headers: { 'Content-Type': 'text/plain' },
+          body: 'Already closed or deleted trade'
+        });
+        return;
       }
-  
+      
+      if (body.positionType) {
+        body.positionType = body.positionType.toUpperCase();
+      }
+
       Object.keys(body).forEach(key => {
         trade[key] = body[key];
       });
+
+      if (body.contractPriceAtClose) {
+        trade.roi = (body.contractPriceAtClose - trade.contractPriceAtOpen) / trade.contractPriceAtOpen;
+        trade.status = 'CLOSED';
+      }
 
       try {
         const result = await trade.save();
@@ -217,6 +225,15 @@ module.exports.deleteTrade = (event, context, callback) => {
           statusCode: 403,
           headers: { 'Content-Type': 'text/plain' },
           body: 'Trade does not belong to given trader Id'
+        });
+        return;
+      }
+
+      if (trade.deleted) {
+        callback(null, {
+          statusCode: 403,
+          headers: { 'Content-Type': 'text/plain' },
+          body: 'Already deleted trade'
         });
         return;
       }
