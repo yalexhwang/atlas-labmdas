@@ -9,6 +9,5 @@ Base Url: https://6yzzal6fyl.execute-api.us-east-1.amazonaws.com/dev
 * PUT - /trade/{tradeId}
 
 ### What to do next
-- Update schema: expriation to 'date'
 - Add authorization
-- Buy domain name
+- Set up domain name
